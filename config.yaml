@@ -1,0 +1,37 @@
+ENV: local
+SERVICE:
+  NAME: url_shortener
+  HOST: "0.0.0.0"
+  PORT: "80"
+LOG_LEVEL : DEBUG
+LOG_FILE: stdout
+
+ENDPOINTS:
+  KEY_SERVER:
+    ENABLE_GRCP: false
+    HTTP:
+      ENABLE_TLS: false
+      HOST: 127.0.0.1
+      PORT: 8081
+
+DATABASES:
+  DRIVER: mysql
+  HOST: 127.0.0.1
+  PORT: 3306
+  USERNAME: root
+  PASSWORD: pass
+  DBNAME: url_shortener
+  CHARSET: utf8mb4
+  POOL_SIZE: 100
+  TIMEOUT: 1s
+  READ_TIMEOUT: 1s
+  WRITE_TIMEOUT: 1s
+
+MAX_RETRY: 5
+REDIS:
+  HOST: 127.0.0.1
+  PORT: 6379
+  PASSWORD: pass
+HASH_POOL_SIZE: 100
+ENABLE_KEY_SERVICE: false
+
