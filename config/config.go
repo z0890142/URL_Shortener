@@ -25,8 +25,10 @@ func GetConfig() *Config {
 
 // Config 該服務相關配置
 type Config struct {
-	Env              string         `mapstructure:"ENV"`
-	Service          Service        `mapstructure:"SERVICE"`
+	Env              string  `mapstructure:"ENV"`
+	ShortenerService Service `mapstructure:"SHORTENER_SERVICE"`
+	KeyService       Service `mapstructure:"KEY_SERVICE"`
+
 	LogLevel         string         `mapstructure:"LOG_LEVEL"`
 	LogFile          string         `mapstructure:"LOG_FILE"`
 	EndPoints        EndPoints      `mapstructure:"ENDPOINTS"`
@@ -35,6 +37,7 @@ type Config struct {
 	Redis            RedisOption    `mapstructure:"REDIS"`
 	HashPoolSize     int            `mapstructure:"HASH_POOL_SIZE"`
 	EnableKeyService bool           `mapstructure:"ENABLE_KEY_SERVICE"`
+	StoreBatchSize   int            `mapstructure:"STORE_BATCH_SIZE"`
 }
 
 // Service defines service configuration struct.

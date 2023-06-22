@@ -50,7 +50,7 @@ func initGin() {
 	r.Use(gin.Recovery())
 	controller.RegisterRoutes(r)
 
-	addr := fmt.Sprintf("%s:%s", config.GetConfig().Service.Host, config.GetConfig().Service.Port)
+	addr := fmt.Sprintf("%s:%s", config.GetConfig().ShortenerService.Host, config.GetConfig().ShortenerService.Port)
 	if err := r.Run(addr); err != nil {
 		logger.LoadExtra(map[string]interface{}{
 			"addr":  addr,

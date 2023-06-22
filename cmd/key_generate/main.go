@@ -2,7 +2,7 @@ package main
 
 import (
 	"URL_Shortener/config"
-	"URL_Shortener/internal/services/url_shortener_service/controller"
+	"URL_Shortener/internal/services/key_generate_service/controller"
 	"URL_Shortener/internal/utils/logger"
 	"flag"
 	"fmt"
@@ -50,7 +50,7 @@ func initGin() {
 	r.Use(gin.Recovery())
 	controller.RegisterRoutes(r)
 
-	addr := fmt.Sprintf("%s:%s", config.GetConfig().Service.Host, config.GetConfig().Service.Port)
+	addr := fmt.Sprintf("%s:%s", config.GetConfig().KeyService.Host, config.GetConfig().KeyService.Port)
 	if err := r.Run(addr); err != nil {
 		logger.LoadExtra(map[string]interface{}{
 			"addr":  addr,

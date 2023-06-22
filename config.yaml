@@ -1,8 +1,12 @@
 ENV: local
-SERVICE:
+SHORTENER_SERVICE:
   NAME: url_shortener
   HOST: "0.0.0.0"
   PORT: "80"
+KEY_SERVICE:
+  NAME: key
+  HOST: "0.0.0.0"
+  PORT: "8080"
 LOG_LEVEL : DEBUG
 LOG_FILE: stdout
 
@@ -34,4 +38,4 @@ REDIS:
   PASSWORD: pass
 HASH_POOL_SIZE: 100
 ENABLE_KEY_SERVICE: false
-
+STORE_BATCH_SIZE: 100

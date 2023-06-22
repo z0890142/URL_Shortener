@@ -16,7 +16,7 @@ type defaultKeyData struct {
 	gormClient *gorm.DB
 }
 
-func NewDefaultKeyData(conf config.DatabaseOption) (KeyData, error) {
+func newDefaultKeyData(conf config.DatabaseOption) (KeyData, error) {
 	db, err := common.OpenMysqlDatabase(&conf)
 	if err != nil {
 		return nil, fmt.Errorf("NewUrlMappingMysql: %s", err)
