@@ -85,6 +85,7 @@ type DatabaseOption struct {
 }
 
 type RedisOption struct {
+	Enable   bool   `mapstructure:"ENABLE"`
 	Host     string `mapstructure:"HOST"`
 	Port     string `mapstructure:"PORT"`
 	Password string `mapstructure:"PASSWORD"`

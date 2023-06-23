@@ -20,14 +20,9 @@ type DefaultHandlerConf struct {
 	EnableKeyService bool
 	KeyServiceAddr   string
 	HashPoolSize     int
-
-	RedisHost     string
-	RedisPort     string
-	RedisPassword string
-
-	RetryTimes int
-
-	DatabaseOpts config.DatabaseOption
+	RedisOpts        config.RedisOption
+	RetryTimes       int
+	DatabaseOpts     config.DatabaseOption
 }
 
 func NewDefaultShortenerHandler(conf DefaultHandlerConf) (ShortenerHandler, error) {
@@ -40,19 +35,25 @@ func NewDefaultShortenerHandler(conf DefaultHandlerConf) (ShortenerHandler, erro
 		return nil, fmt.Errorf("NewDefaultShortenerHandler: %w", err)
 	}
 
-	urlMappingDataRedis, err := url_mapping_data.NewUrlMappingData(url_mapping_data.UrlMappingRedisConfig{
-		Host:     conf.RedisHost,
-		Port:     conf.RedisPort,
-		Password: conf.RedisPassword,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("NewDefaultShortenerHandler: %w", err)
-	}
-
 	handler := defaultShortenerHandler{
 		murmurShortener:     murmurShortener,
-		urlMappingDataRedis: urlMappingDataRedis,
 		urlMappingDataMysql: urlMappingDataMysql,
+	}
+
+	if conf.RedisOpts.Enable {
+		urlMappingDataRedis, err := url_mapping_data.NewUrlMappingData(url_mapping_data.UrlMappingRedisConfig{
+			Host:     conf.RedisOpts.Host,
+			Port:     conf.RedisOpts.Port,
+			Password: conf.RedisOpts.Password,
+		})
+		if err != nil {
+			logger.LoadExtra(map[string]interface{}{
+				"redis": conf.RedisOpts,
+				"error": err,
+			}).Error("NewDefaultShortenerHandler: NewUrlMappingData")
+		} else {
+			handler.urlMappingDataRedis = urlMappingDataRedis
+		}
 	}
 
 	if conf.EnableKeyService {

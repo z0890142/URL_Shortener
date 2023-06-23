@@ -14,12 +14,10 @@ var defaultController *controller.ShortenerController
 func initCtrl(app *app.Application, r *gin.Engine) (*controller.ShortenerController, error) {
 
 	handlerConf := handler.DefaultHandlerConf{
-		HashPoolSize:  app.GetConfig().HashPoolSize,
-		RedisHost:     app.GetConfig().Redis.Host,
-		RedisPort:     app.GetConfig().Redis.Port,
-		RedisPassword: app.GetConfig().Redis.Password,
-		DatabaseOpts:  app.GetConfig().Databases,
-		RetryTimes:    app.GetConfig().RetryTimes,
+		HashPoolSize: app.GetConfig().HashPoolSize,
+		RedisOpts:    app.GetConfig().Redis,
+		DatabaseOpts: app.GetConfig().Databases,
+		RetryTimes:   app.GetConfig().RetryTimes,
 	}
 
 	if app.GetConfig().EnableKeyService {
