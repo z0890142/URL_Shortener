@@ -1,9 +1,8 @@
 package shortener
 
 import (
-	"URL_Shortener/config"
 	"URL_Shortener/internal/models"
-	"URL_Shortener/internal/utils/common"
+	"URL_Shortener/pkg/utils/common"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -15,6 +14,7 @@ import (
 type KeyServerShortenerConfig struct {
 	KeyServerAddr string
 	KeyPoolSize   int
+	RetryTimes    int
 }
 
 type keyServerShortener struct {
@@ -22,6 +22,7 @@ type keyServerShortener struct {
 	keyServerAddr string
 	keyPool       chan string
 	KeyPoolSize   int
+	RetryTimes    int
 }
 
 func newKeyServerShortener(conf KeyServerShortenerConfig) Shortener {
@@ -30,6 +31,7 @@ func newKeyServerShortener(conf KeyServerShortenerConfig) Shortener {
 		keyServerAddr: conf.KeyServerAddr,
 		keyPool:       make(chan string, conf.KeyPoolSize),
 		KeyPoolSize:   conf.KeyPoolSize,
+		RetryTimes:    conf.RetryTimes,
 	}
 }
 
@@ -78,7 +80,7 @@ func (s *keyServerShortener) GetNewKey() error {
 	var response *http.Response
 
 	for {
-		if retryCount > config.GetConfig().MaxRetry {
+		if retryCount > s.RetryTimes {
 			break
 		}
 
@@ -109,4 +111,8 @@ func (s *keyServerShortener) GetNewKey() error {
 		s.keyPool <- key
 	}
 	return nil
+}
+
+func (s *keyServerShortener) Close() {
+	close(s.keyPool)
 }

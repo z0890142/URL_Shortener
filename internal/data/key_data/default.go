@@ -4,7 +4,7 @@ import (
 	"URL_Shortener/c"
 	"URL_Shortener/config"
 	"URL_Shortener/internal/models"
-	"URL_Shortener/internal/utils/common"
+	"URL_Shortener/pkg/utils/common"
 	"fmt"
 
 	gormMysql "gorm.io/driver/mysql"
@@ -58,4 +58,12 @@ func (e *defaultKeyData) UpdateKey(keyRows []models.KeyRow) (int, error) {
 		return 0, fmt.Errorf("UpdateKey: %w", tx.Error)
 	}
 	return int(tx.RowsAffected), nil
+}
+
+func (e *defaultKeyData) Close() error {
+	db, err := e.gormClient.DB()
+	if err != nil {
+		return fmt.Errorf("Close: %w", err)
+	}
+	return db.Close()
 }

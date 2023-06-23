@@ -27,3 +27,7 @@ func (p *HashPool) ReleaseHash(hash hash.Hash32) {
 	hash.Reset()
 	p.pool <- hash
 }
+
+func (p *HashPool) Close() {
+	close(p.pool)
+}

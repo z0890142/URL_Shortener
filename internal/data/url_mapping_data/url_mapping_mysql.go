@@ -4,7 +4,7 @@ import (
 	"URL_Shortener/c"
 	"URL_Shortener/config"
 	"URL_Shortener/internal/models"
-	"URL_Shortener/internal/utils/common"
+	"URL_Shortener/pkg/utils/common"
 	"fmt"
 	"time"
 
@@ -65,4 +65,12 @@ func (u *urlMappingMysql) GetUrl(urlId string) (string, error) {
 	}
 
 	return urlMappingRow.OriginalUrl, nil
+}
+
+func (u *urlMappingMysql) Close() error {
+	db, err := u.gormClient.DB()
+	if err != nil {
+		return fmt.Errorf("Close: %w", err)
+	}
+	return db.Close()
 }

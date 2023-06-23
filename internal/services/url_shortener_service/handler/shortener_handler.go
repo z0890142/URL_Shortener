@@ -4,8 +4,8 @@ import (
 	"URL_Shortener/c"
 	"URL_Shortener/config"
 	"URL_Shortener/internal/data/url_mapping_data"
-	"URL_Shortener/internal/utils/logger"
-	"URL_Shortener/internal/utils/shortener"
+	"URL_Shortener/pkg/utils/logger"
+	"URL_Shortener/pkg/utils/shortener"
 	"fmt"
 )
 
@@ -20,6 +20,14 @@ type DefaultHandlerConf struct {
 	EnableKeyService bool
 	KeyServiceAddr   string
 	HashPoolSize     int
+
+	RedisHost     string
+	RedisPort     string
+	RedisPassword string
+
+	RetryTimes int
+
+	DatabaseOpts config.DatabaseOption
 }
 
 func NewDefaultShortenerHandler(conf DefaultHandlerConf) (ShortenerHandler, error) {
@@ -27,15 +35,15 @@ func NewDefaultShortenerHandler(conf DefaultHandlerConf) (ShortenerHandler, erro
 		HashPoolSize: conf.HashPoolSize,
 	})
 
-	urlMappingDataMysql, err := url_mapping_data.NewUrlMappingData(config.GetConfig().Databases)
+	urlMappingDataMysql, err := url_mapping_data.NewUrlMappingData(conf.DatabaseOpts)
 	if err != nil {
 		return nil, fmt.Errorf("NewDefaultShortenerHandler: %w", err)
 	}
 
 	urlMappingDataRedis, err := url_mapping_data.NewUrlMappingData(url_mapping_data.UrlMappingRedisConfig{
-		Host:     config.GetConfig().Redis.Host,
-		Port:     config.GetConfig().Redis.Port,
-		Password: config.GetConfig().Redis.Password,
+		Host:     conf.RedisHost,
+		Port:     conf.RedisPort,
+		Password: conf.RedisPassword,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("NewDefaultShortenerHandler: %w", err)
@@ -51,6 +59,7 @@ func NewDefaultShortenerHandler(conf DefaultHandlerConf) (ShortenerHandler, erro
 		keyShortener := shortener.NewShortener(shortener.KeyServerShortenerConfig{
 			KeyServerAddr: conf.KeyServiceAddr,
 			KeyPoolSize:   conf.HashPoolSize,
+			RetryTimes:    conf.RetryTimes,
 		})
 		handler.keyShortener = keyShortener
 	}
@@ -116,4 +125,11 @@ func (h *defaultShortenerHandler) GetUrlId(url string) (string, error) {
 		}
 	}
 	return urlId, nil
+}
+
+func (h *defaultShortenerHandler) Shutdown() {
+	h.murmurShortener.Close()
+	h.keyShortener.Close()
+	h.urlMappingDataRedis.Close()
+	h.urlMappingDataMysql.Close()
 }

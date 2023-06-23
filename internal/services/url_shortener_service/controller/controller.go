@@ -11,12 +11,14 @@ import (
 )
 
 type ShortenerController struct {
-	shortHandler handler.ShortenerHandler
+	shortHandler  handler.ShortenerHandler
+	shuntDownOnce sync.Once
 }
 
 func NewController(shortHandler handler.ShortenerHandler) *ShortenerController {
 	return &ShortenerController{
-		shortHandler: shortHandler,
+		shortHandler:  shortHandler,
+		shuntDownOnce: sync.Once{},
 	}
 }
 
@@ -69,4 +71,10 @@ func (s *ShortenerController) RedirectUrl(c *gin.Context) {
 	}
 
 	c.Redirect(http.StatusMovedPermanently, url)
+}
+
+func (s *ShortenerController) Shutdown() {
+	s.shuntDownOnce.Do(func() {
+		s.shortHandler.Shutdown()
+	})
 }

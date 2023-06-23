@@ -4,6 +4,7 @@ import "fmt"
 
 type KeyHandler interface {
 	GetKeys(num int) ([]string, error)
+	Shutdown()
 }
 
 func NewKeyHandler(conf interface{}) (KeyHandler, error) {

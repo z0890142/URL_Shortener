@@ -2,12 +2,12 @@ package main
 
 import (
 	"URL_Shortener/config"
-	"URL_Shortener/internal/services/url_shortener_service/controller"
-	"URL_Shortener/internal/utils/logger"
+	"URL_Shortener/internal/services/url_shortener_service/hook"
+	"URL_Shortener/pkg/app"
 	"flag"
-	"fmt"
-
-	"github.com/gin-gonic/gin"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 var (
@@ -19,45 +19,20 @@ func init() {
 	flag.StringVar(&flagconf, "conf", "../../", "config path, eg: -conf config.yaml")
 }
 
+func handleSignals(server *app.Application) {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	server.GetLogger().Infof("signal %s received", <-sigs)
+	server.Shutdown()
+}
+
 func main() {
 	flag.Parse()
 	config.LoadConf(flagconf, config.GetConfig())
-	initLogger()
-	initGin()
-}
 
-func initLogger() {
-	l, err := logger.New(logger.Options{
-		Level:   config.GetConfig().LogLevel,
-		Outputs: []string{config.GetConfig().LogFile},
-	})
+	server := app.Default()
+	server.AddInitHook(hook.InitGinApplicationHook)
 
-	if err != nil {
-		panic(err)
-	}
-	logger.SetLogger(l)
-
-}
-
-func initGin() {
-	if config.GetConfig().Env == "prod" {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
-	gin.EnableJsonDecoderUseNumber()
-	r := gin.New()
-
-	r.Use(gin.Recovery())
-	controller.RegisterRoutes(r)
-
-	addr := fmt.Sprintf("%s:%s", config.GetConfig().ShortenerService.Host, config.GetConfig().ShortenerService.Port)
-	if err := r.Run(addr); err != nil {
-		logger.LoadExtra(map[string]interface{}{
-			"addr":  addr,
-			"error": err,
-		}).Error("run gin http server error")
-		panic(err)
-	}
-	logger.Debug("init gin http server")
-
+	go handleSignals(server)
+	server.Run()
 }

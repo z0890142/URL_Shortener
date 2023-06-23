@@ -2,6 +2,7 @@ package shortener
 
 type Shortener interface {
 	GenerateUrlId(url string) (string, error)
+	Close()
 }
 
 func NewShortener(conf interface{}) Shortener {

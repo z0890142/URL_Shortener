@@ -38,3 +38,7 @@ func (r *urlMappingRedis) SetUrlId(urlId, url, expireAt string) error {
 func (r *urlMappingRedis) GetUrl(urlId string) (string, error) {
 	return r.redisClient.Get(urlId).Result()
 }
+
+func (r *urlMappingRedis) Close() error {
+	return r.redisClient.Close()
+}

@@ -10,13 +10,16 @@ import (
 )
 
 type KeyController struct {
-	keyHandler handler.KeyHandler
+	keyHandler    handler.KeyHandler
+	shuntDownOnce sync.Once
 }
 
 func NewController(keyHandler handler.KeyHandler) *KeyController {
 	return &KeyController{
-		keyHandler: keyHandler,
+		keyHandler:    keyHandler,
+		shuntDownOnce: sync.Once{},
 	}
+
 }
 
 var NewGetKeysReqPool = sync.Pool{
@@ -50,4 +53,10 @@ func (s *KeyController) GenerateKey(c *gin.Context) {
 		Keys: keys,
 	})
 
+}
+
+func (s *KeyController) Shutdown() {
+	s.shuntDownOnce.Do(func() {
+		s.keyHandler.Shutdown()
+	})
 }

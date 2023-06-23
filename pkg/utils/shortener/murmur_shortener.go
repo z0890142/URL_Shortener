@@ -1,7 +1,7 @@
 package shortener
 
 import (
-	"URL_Shortener/internal/utils/common"
+	"URL_Shortener/pkg/utils/common"
 	"fmt"
 	"time"
 )
@@ -31,4 +31,8 @@ func (s *murmurShortener) GenerateUrlId(url string) (string, error) {
 	}
 
 	return common.Base62Encode(hash.Sum32()), nil
+}
+
+func (s *murmurShortener) Close() {
+	s.hashPool.Close()
 }

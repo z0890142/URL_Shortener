@@ -8,6 +8,7 @@ import (
 type UrlMappingData interface {
 	SetUrlId(urlId, url, expireAt string) error
 	GetUrl(urlId string) (string, error)
+	Close() error
 }
 
 func NewUrlMappingData(conf interface{}) (UrlMappingData, error) {

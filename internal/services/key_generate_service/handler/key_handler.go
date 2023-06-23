@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"URL_Shortener/config"
 	"URL_Shortener/internal/data/key_data"
 	"URL_Shortener/internal/models"
-	"URL_Shortener/internal/utils/logger"
-	"URL_Shortener/internal/utils/shortener"
+	"URL_Shortener/pkg/app"
+	"URL_Shortener/pkg/utils/logger"
+	"URL_Shortener/pkg/utils/shortener"
 	"fmt"
 	"sync"
 	"time"
@@ -40,7 +40,7 @@ func newDefaultKeyHandler(conf DefaultKeyHandlerConf) (KeyHandler, error) {
 	})
 	defaultKeyHandler.murmurShortener = murmurShortener
 
-	keyData, err := key_data.NewKeyData(config.GetConfig().Databases)
+	keyData, err := key_data.NewKeyData(app.Default().GetConfig().Databases)
 	if err != nil {
 		return nil, fmt.Errorf("NewDefaultKeyHandler: %w", err)
 	}
@@ -152,4 +152,11 @@ func (d *defaultKeyHandler) insertKeyToBuf(keys []string) {
 	for _, key := range keys {
 		d.keyBuffer <- key
 	}
+}
+
+func (d *defaultKeyHandler) Shutdown() {
+	d.murmurShortener.Close()
+	d.keyData.Close()
+	close(d.storeBuffer)
+	close(d.keyBuffer)
 }

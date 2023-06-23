@@ -33,7 +33,7 @@ type Config struct {
 	LogFile          string         `mapstructure:"LOG_FILE"`
 	EndPoints        EndPoints      `mapstructure:"ENDPOINTS"`
 	Databases        DatabaseOption `mapstructure:"DATABASES"`
-	MaxRetry         int            `mapstructure:"MAX_RETRY"`
+	RetryTimes       int            `mapstructure:"RETRY_TIMES"`
 	Redis            RedisOption    `mapstructure:"REDIS"`
 	HashPoolSize     int            `mapstructure:"HASH_POOL_SIZE"`
 	EnableKeyService bool           `mapstructure:"ENABLE_KEY_SERVICE"`

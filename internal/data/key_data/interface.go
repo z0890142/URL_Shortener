@@ -9,6 +9,7 @@ type KeyData interface {
 	GetKey(num int, startId int64) ([]models.KeyRow, error)
 	InsertKey([]models.KeyRow) (int, error)
 	UpdateKey([]models.KeyRow) (int, error)
+	Close() error
 }
 
 func NewKeyData(conf config.DatabaseOption) (KeyData, error) {
