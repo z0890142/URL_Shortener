@@ -31,7 +31,11 @@ func main() {
 	config.LoadConf(flagconf, config.GetConfig())
 
 	server := app.Default()
+	server.AddInitHook(hook.InitDatabaseHook)
+	server.AddInitHook(hook.InitGormClientHook)
 	server.AddInitHook(hook.InitGinApplicationHook)
+
+	server.AddDestroyHook(hook.DestroyGinApplicationHook)
 
 	go handleSignals(server)
 	server.Run()

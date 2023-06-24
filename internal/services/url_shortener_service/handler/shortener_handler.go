@@ -4,6 +4,7 @@ import (
 	"URL_Shortener/c"
 	"URL_Shortener/config"
 	"URL_Shortener/internal/data/url_mapping_data"
+	"URL_Shortener/pkg/utils/common"
 	"URL_Shortener/pkg/utils/logger"
 	"URL_Shortener/pkg/utils/shortener"
 	"fmt"
@@ -77,11 +78,15 @@ func (h *defaultShortenerHandler) GenerateShortUrl(url, expireAt string) (urlId 
 
 		//set urlId in mysql
 		err = h.urlMappingDataMysql.SetUrlId(urlId, url, expireAt)
-		if err != nil && SqlErrCode(err) == c.MySQLErrDuplicateEntryCode {
+		if err != nil && common.SqlErrCode(err) == c.MySQLErrDuplicateEntryCode {
 			continue
 		}
 		if err != nil {
 			return "", fmt.Errorf("GenerateShortUrl: %w", err)
+		}
+
+		if h.urlMappingDataRedis == nil {
+			return urlId, nil
 		}
 
 		//set urlId in redis
@@ -99,7 +104,12 @@ func (h *defaultShortenerHandler) GenerateShortUrl(url, expireAt string) (urlId 
 }
 
 func (h *defaultShortenerHandler) GetUrl(urlId string) (url string, err error) {
+	if h.urlMappingDataRedis == nil {
+		return h.urlMappingDataMysql.GetUrl(urlId)
+	}
+	logger.Info("GetUrl: GetUrl from redis")
 	if url, err = h.urlMappingDataRedis.GetUrl(urlId); err != nil {
+		logger.Info("GetUrl: GetUrl from DB")
 		url, err = h.urlMappingDataMysql.GetUrl(urlId)
 		if err != nil {
 			return "", fmt.Errorf("GetUrl: %w", err)

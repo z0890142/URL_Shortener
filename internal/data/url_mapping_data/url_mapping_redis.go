@@ -1,7 +1,6 @@
 package url_mapping_data
 
 import (
-	"URL_Shortener/c"
 	"fmt"
 	"time"
 
@@ -27,12 +26,14 @@ func newUrlMappingRedis(conf UrlMappingRedisConfig) (UrlMappingData, error) {
 }
 
 func (r *urlMappingRedis) SetUrlId(urlId, url, expireAt string) error {
-	expiration, err := time.Parse(c.TimeFormat, expireAt)
-	duration := expiration.Sub(time.Now())
+	t, err := time.Parse(time.RFC3339, expireAt)
+	duration := t.Sub(time.Now())
+	seconds := int(duration.Seconds())
+
 	if err != nil {
 		return fmt.Errorf("SetUrlId: %s", err)
 	}
-	return r.redisClient.Set(urlId, url, duration).Err()
+	return r.redisClient.Set(urlId, url, time.Duration(seconds)*time.Second).Err()
 }
 
 func (r *urlMappingRedis) GetUrl(urlId string) (string, error) {

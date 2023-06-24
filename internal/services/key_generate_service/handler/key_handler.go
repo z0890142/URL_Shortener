@@ -45,7 +45,7 @@ func newDefaultKeyHandler(conf DefaultKeyHandlerConf) (KeyHandler, error) {
 		return nil, fmt.Errorf("NewDefaultKeyHandler: %w", err)
 	}
 	defaultKeyHandler.keyData = keyData
-	defaultKeyHandler.generateKey()
+	go defaultKeyHandler.generateKey()
 
 	return &defaultKeyHandler, nil
 }

@@ -154,7 +154,9 @@ func (app *Application) SetSrv(handler http.Handler) {
 func (app *Application) SetAddr(addr string) {
 	app.addr = addr
 }
-
+func (app *Application) SetLogger(logger *zap.SugaredLogger) {
+	app.logger = logger
+}
 func (app *Application) GetLogger() *zap.SugaredLogger {
 	return app.logger
 }

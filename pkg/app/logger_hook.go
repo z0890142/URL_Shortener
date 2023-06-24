@@ -13,6 +13,9 @@ func initLoggerApplicationHook(app *Application) error {
 	if err != nil {
 		panic(err)
 	}
+
 	logger.SetLogger(l)
+	app.SetLogger(l.Sugar())
+
 	return nil
 }

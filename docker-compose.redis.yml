@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  url_shortener :
+    environment:
+      - REDIS.ENABLE=true
+      - REDIS.HOST=redis
+  redis:
+    image: redis:6-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass "pass"  --maxmemory-policy volatile-lru
+    platform: linux/amd64

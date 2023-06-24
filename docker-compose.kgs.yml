@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  url_shortener :
+    environment:
+      - ENABLE_KEY_SERVICE=true
+      - ENDPOINTS.KEY_SERVER.HOST=key_generate
+      - ENDPOINTS.KEY_SERVER.PORT=8080
+  kgs-service-build:
+    build:
+      context: .
+      args:
+        MAIN_PATH: key_generate
+      dockerfile: build/dockerfile
+    image: key_generate:latest
+  key_generate :
+    image: key_generate:latest
+    ports:  
+      - 8080:8080
+    environment:
+      - DATABASES.HOST=mysql
+    depends_on:
+      - mysql
+    restart: always

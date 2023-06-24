@@ -29,15 +29,16 @@ type Config struct {
 	ShortenerService Service `mapstructure:"SHORTENER_SERVICE"`
 	KeyService       Service `mapstructure:"KEY_SERVICE"`
 
-	LogLevel         string         `mapstructure:"LOG_LEVEL"`
-	LogFile          string         `mapstructure:"LOG_FILE"`
-	EndPoints        EndPoints      `mapstructure:"ENDPOINTS"`
-	Databases        DatabaseOption `mapstructure:"DATABASES"`
-	RetryTimes       int            `mapstructure:"RETRY_TIMES"`
-	Redis            RedisOption    `mapstructure:"REDIS"`
-	HashPoolSize     int            `mapstructure:"HASH_POOL_SIZE"`
-	EnableKeyService bool           `mapstructure:"ENABLE_KEY_SERVICE"`
-	StoreBatchSize   int            `mapstructure:"STORE_BATCH_SIZE"`
+	LogLevel          string         `mapstructure:"LOG_LEVEL"`
+	LogFile           string         `mapstructure:"LOG_FILE"`
+	EndPoints         EndPoints      `mapstructure:"ENDPOINTS"`
+	Databases         DatabaseOption `mapstructure:"DATABASES"`
+	RetryTimes        int            `mapstructure:"RETRY_TIMES"`
+	Redis             RedisOption    `mapstructure:"REDIS"`
+	HashPoolSize      int            `mapstructure:"HASH_POOL_SIZE"`
+	EnableKeyService  bool           `mapstructure:"ENABLE_KEY_SERVICE"`
+	StoreBatchSize    int            `mapstructure:"STORE_BATCH_SIZE"`
+	MigrationFilePath string         `mapstructure:"MIGRATION_FILE_PATH"`
 }
 
 // Service defines service configuration struct.

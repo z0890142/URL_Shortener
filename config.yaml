@@ -16,7 +16,7 @@ ENDPOINTS:
     HTTP:
       ENABLE_TLS: false
       HOST: 127.0.0.1
-      PORT: 8081
+      PORT: 8080
 
 DATABASES:
   DRIVER: mysql
@@ -33,10 +33,11 @@ DATABASES:
 
 RETRY_TIMES: 5
 REDIS:
-  ENABLE: false
+  ENABLE: true
   HOST: 127.0.0.1
   PORT: 6379
   PASSWORD: pass
 HASH_POOL_SIZE: 100
-ENABLE_KEY_SERVICE: false
+ENABLE_KEY_SERVICE: true
 STORE_BATCH_SIZE: 100
+MIGRATION_FILE_PATH: ../../pkg/database/migrations

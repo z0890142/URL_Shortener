@@ -65,3 +65,8 @@ func InitGinApplicationHook(app *app.Application) error {
 
 	return nil
 }
+
+func DestroyGinApplicationHook(app *app.Application) error {
+	defaultController.Shutdown()
+	return nil
+}
