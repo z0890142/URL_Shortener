@@ -2,12 +2,13 @@ package url_mapping_data
 
 import (
 	"URL_Shortener/config"
+	"context"
 	"fmt"
 )
 
 type UrlMappingData interface {
-	SetUrlId(urlId, url, expireAt string) error
-	GetUrl(urlId string) (string, error)
+	SetUrlId(ctx context.Context, urlId, url, expireAt string) error
+	GetUrl(ctx context.Context, urlId string) (string, error)
 	Close() error
 }
 

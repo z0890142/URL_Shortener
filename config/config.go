@@ -3,8 +3,6 @@ package config
 import (
 	"sync"
 	"time"
-
-	"go.uber.org/zap/zapcore"
 )
 
 var globalConfig *Config
@@ -29,16 +27,20 @@ type Config struct {
 	ShortenerService Service `mapstructure:"SHORTENER_SERVICE"`
 	KeyService       Service `mapstructure:"KEY_SERVICE"`
 
-	LogLevel          string         `mapstructure:"LOG_LEVEL"`
-	LogFile           string         `mapstructure:"LOG_FILE"`
-	EndPoints         EndPoints      `mapstructure:"ENDPOINTS"`
-	Databases         DatabaseOption `mapstructure:"DATABASES"`
-	RetryTimes        int            `mapstructure:"RETRY_TIMES"`
-	Redis             RedisOption    `mapstructure:"REDIS"`
-	HashPoolSize      int            `mapstructure:"HASH_POOL_SIZE"`
-	EnableKeyService  bool           `mapstructure:"ENABLE_KEY_SERVICE"`
-	StoreBatchSize    int            `mapstructure:"STORE_BATCH_SIZE"`
-	MigrationFilePath string         `mapstructure:"MIGRATION_FILE_PATH"`
+	LogLevel  string         `mapstructure:"LOG_LEVEL"`
+	LogFile   string         `mapstructure:"LOG_FILE"`
+	EndPoints EndPoints      `mapstructure:"ENDPOINTS"`
+	Databases DatabaseOption `mapstructure:"DATABASES"`
+
+	Redis          RedisOption `mapstructure:"REDIS"`
+	RatelimitRedis RedisOption `mapstructure:"RATELIMIT_REDIS"`
+	Ratelimit      Ratelimit   `mapstructure:"RATELIMIT"`
+
+	HashPoolSize      int    `mapstructure:"HASH_POOL_SIZE"`
+	EnableKeyService  bool   `mapstructure:"ENABLE_KEY_SERVICE"`
+	StoreBatchSize    int    `mapstructure:"STORE_BATCH_SIZE"`
+	MigrationFilePath string `mapstructure:"MIGRATION_FILE_PATH"`
+	Trace             Trace  `mapstructure:"TRACE"`
 }
 
 // Service defines service configuration struct.
@@ -92,38 +94,13 @@ type RedisOption struct {
 	Password string `mapstructure:"PASSWORD"`
 }
 
-// MarshalLogObject use for logger *zap.Logger
-func (o DatabaseOption) MarshalLogObject(en zapcore.ObjectEncoder) error {
-	en.AddString("driver", o.Driver)
-	en.AddString("host", o.Host)
-	en.AddUint16("port", o.Port)
-	en.AddString("username", o.Username)
-	en.AddString("password", "********")
-	en.AddString("dbname", o.DBName)
+type Ratelimit struct {
+	Enable bool  `mapstructure:"ENABLE"`
+	Secend int   `mapstructure:"SECEND"`
+	Number int64 `mapstructure:"NUMBER"`
+}
 
-	if len(o.Timezone) > 0 {
-		en.AddString("timezone", o.Timezone)
-	}
-
-	if len(o.Charset) > 0 {
-		en.AddString("charset", o.Charset)
-	}
-
-	if o.PoolSize > 0 {
-		en.AddInt("pool_size", o.PoolSize)
-	}
-
-	if o.Timeout > 0 {
-		en.AddString("timeout", o.Timeout.String())
-	}
-
-	if o.ReadTimeout > 0 {
-		en.AddString("read_timeout", o.ReadTimeout.String())
-	}
-
-	if o.WriteTimeout > 0 {
-		en.AddString("write_timeout", o.WriteTimeout.String())
-	}
-
-	return nil
+type Trace struct {
+	Enable   bool   `mapstructure:"ENABLE"`
+	Endpoint string `mapstructure:"ENDPOINT"`
 }

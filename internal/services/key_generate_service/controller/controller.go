@@ -33,19 +33,19 @@ func (s *KeyController) GenerateKey(c *gin.Context) {
 	defer NewGetKeysReqPool.Put(req)
 
 	if err := c.ShouldBindJSON(req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err := validReq(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	keys, err := s.keyHandler.GetKeys(req.Nums)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -59,4 +59,8 @@ func (s *KeyController) Shutdown() {
 	s.shuntDownOnce.Do(func() {
 		s.keyHandler.Shutdown()
 	})
+}
+
+func handleError(c *gin.Context, status int, err error) {
+	c.JSON(status, gin.H{"error": err.Error()})
 }

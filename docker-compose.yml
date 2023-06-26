@@ -1,6 +1,14 @@
 version: "3.9"
 
 services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      MYSQL_DATABASE: url_shortener
+      MYSQL_ROOT_PASSWORD: pass
+    command: --lower_case_table_names=0
+
   service-build:
     build:
       context: .
@@ -21,10 +29,4 @@ services:
     restart: always
 
 
-  mysql:
-    image: mysql:latest
-    container_name: mysql
-    environment:
-      MYSQL_DATABASE: url_shortener
-      MYSQL_ROOT_PASSWORD: pass
 

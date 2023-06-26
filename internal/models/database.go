@@ -12,9 +12,6 @@ type UrlMappingRow struct {
 }
 
 type KeyRow struct {
-	Id        int64     `gorm:"column:id"`
 	Key       string    `gorm:"column:key"`
-	Used      int       `gorm:"column:used"`
 	CreatedAt time.Time `gorm:"column:created_at"`
-	UpdatedAt time.Time `gorm:"column:updated_at"`
 }

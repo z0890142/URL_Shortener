@@ -3,22 +3,15 @@ package handler
 import (
 	"URL_Shortener/internal/data/key_data"
 	"URL_Shortener/internal/models"
+	"URL_Shortener/internal/services/key_generate_service/key_generator"
 	"URL_Shortener/pkg/app"
-	"URL_Shortener/pkg/utils/logger"
 	"URL_Shortener/pkg/utils/shortener"
 	"fmt"
-	"sync"
-	"time"
 )
 
 type defaultKeyHandler struct {
-	mu              *sync.Mutex
-	keyBuffer       chan string
-	storeBuffer     chan string
-	storeBatchSize  int
-	latestKeyId     int64
-	keyData         key_data.KeyData
-	murmurShortener shortener.Shortener
+	keyData      key_data.KeyData
+	keyGenerator *key_generator.KeyGenerator
 }
 
 type DefaultKeyHandlerConf struct {
@@ -28,135 +21,56 @@ type DefaultKeyHandlerConf struct {
 
 func newDefaultKeyHandler(conf DefaultKeyHandlerConf) (KeyHandler, error) {
 
-	defaultKeyHandler := defaultKeyHandler{
-		mu:             &sync.Mutex{},
-		keyBuffer:      make(chan string, conf.StoreBatchSize),
-		storeBuffer:    make(chan string),
-		storeBatchSize: conf.StoreBatchSize,
-	}
+	defaultKeyHandler := defaultKeyHandler{}
 
 	murmurShortener := shortener.NewShortener(shortener.MurMurShortenerConfig{
 		HashPoolSize: conf.HashPoolSize,
 	})
-	defaultKeyHandler.murmurShortener = murmurShortener
 
 	keyData, err := key_data.NewKeyData(app.Default().GetConfig().Databases)
 	if err != nil {
 		return nil, fmt.Errorf("NewDefaultKeyHandler: %w", err)
 	}
 	defaultKeyHandler.keyData = keyData
-	go defaultKeyHandler.generateKey()
 
+	keyGenerator := key_generator.NewKeyGenerator(conf.StoreBatchSize, keyData, murmurShortener)
+	defaultKeyHandler.keyGenerator = keyGenerator
+
+	defaultKeyHandler.keyGenerator.Start()
 	return &defaultKeyHandler, nil
 }
 
 func (d *defaultKeyHandler) GetKeys(num int) (result []string, err error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
 
-	var count int
 	var keys []models.KeyRow
 
-Loop:
-	for count = 0; count < num; count++ {
-		select {
-		case key := <-d.keyBuffer:
-			result = append(result, key)
-		default:
-			keys, err = d.keyData.GetKey(num*2-count, d.latestKeyId)
-			if err != nil {
-				d.insertKeyToBuf(result)
-				return []string{}, fmt.Errorf("GetKeys: %w", err)
-			}
-			break Loop
-		}
-	}
-
-	if len(keys) == 0 {
-		return result, nil
-	}
-
-	for index, key := range keys {
-		keys[index].Used = 1
-		if len(result) < num {
-			result = append(result, key.Key)
-			continue
-		}
-		d.keyBuffer <- key.Key
-	}
-
-	//update keys to used
-	if _, err = d.keyData.UpdateKey(keys); err != nil {
+	keys, err = d.keyData.GetAvailableKey(num)
+	if err != nil {
 		return []string{}, fmt.Errorf("GetKeys: %w", err)
 	}
 
-	d.latestKeyId = keys[len(keys)-1].Id
+	keyIds := make([]string, len(keys))
+	for i, key := range keys {
+		keyIds[i] = key.Key
+	}
+	err = d.keyData.DeleteAvailableKey(keyIds)
+	if err != nil {
+		return []string{}, fmt.Errorf("GetKeys: %w", err)
+	}
+
+	_, err = d.keyData.InsertAllocatedKey(keys)
+	if err != nil {
+		return []string{}, fmt.Errorf("GetKeys: %w", err)
+	}
+
+	result = make([]string, len(keys))
+	for i, key := range keys {
+		result[i] = key.Key
+	}
 
 	return result, nil
 }
 
-func (d *defaultKeyHandler) generateKey() {
-	go d.storeKey()
-	for {
-		if key, err := d.murmurShortener.GenerateUrlId(time.Now().Format(time.RFC3339Nano)); err != nil {
-			logger.LoadExtra(map[string]interface{}{
-				"error": err,
-			}).Error("GenerateKey: error")
-		} else {
-			d.storeBuffer <- key
-		}
-	}
-}
-
-func (d *defaultKeyHandler) storeKey() {
-	keys := []models.KeyRow{}
-Loop:
-	for {
-		select {
-		case key, ok := <-d.storeBuffer:
-			if !ok {
-				if _, err := d.keyData.InsertKey(keys); err != nil {
-					logger.LoadExtra(map[string]interface{}{
-						"error": err,
-					}).Error("StoreKey: error")
-				}
-				break Loop
-			}
-
-			if len(keys) == d.storeBatchSize {
-				if _, err := d.keyData.InsertKey(keys); err != nil {
-					logger.LoadExtra(map[string]interface{}{
-						"error": err,
-					}).Error("StoreKey: error")
-				}
-				keys = []models.KeyRow{}
-			}
-
-			keys = append(keys, models.KeyRow{
-				Key:  key,
-				Used: 0,
-			})
-
-		case <-time.After(30 * time.Second):
-			if _, err := d.keyData.InsertKey(keys); err != nil {
-				logger.LoadExtra(map[string]interface{}{
-					"error": err,
-				}).Error("StoreKey: error")
-			}
-			keys = []models.KeyRow{}
-		}
-	}
-}
-
-func (d *defaultKeyHandler) insertKeyToBuf(keys []string) {
-	for _, key := range keys {
-		d.keyBuffer <- key
-	}
-}
-
 func (d *defaultKeyHandler) Shutdown() {
-	d.murmurShortener.Close()
 	d.keyData.Close()
-	close(d.storeBuffer)
-	close(d.keyBuffer)
 }

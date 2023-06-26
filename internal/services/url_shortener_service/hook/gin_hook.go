@@ -4,9 +4,13 @@ import (
 	"URL_Shortener/internal/services/url_shortener_service/controller"
 	"URL_Shortener/internal/services/url_shortener_service/handler"
 	"URL_Shortener/pkg/app"
+	"URL_Shortener/pkg/middleware"
 	"fmt"
 
+	"URL_Shortener/pkg/utils/trace"
+
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 var defaultController *controller.ShortenerController
@@ -17,7 +21,6 @@ func initCtrl(app *app.Application, r *gin.Engine) (*controller.ShortenerControl
 		HashPoolSize: app.GetConfig().HashPoolSize,
 		RedisOpts:    app.GetConfig().Redis,
 		DatabaseOpts: app.GetConfig().Databases,
-		RetryTimes:   app.GetConfig().RetryTimes,
 	}
 
 	if app.GetConfig().EnableKeyService {
@@ -55,8 +58,19 @@ func InitGinApplicationHook(app *app.Application) error {
 
 	gin.EnableJsonDecoderUseNumber()
 	r := gin.New()
-
 	r.Use(gin.Recovery())
+	if app.GetConfig().Trace.Enable {
+		trace.NewTracerProvider(app.GetConfig().Trace.Endpoint, "url_shortener")
+		r.Use(otelgin.Middleware("url_shortener"))
+	}
+
+	if app.GetConfig().Ratelimit.Enable {
+		r.Use(middleware.Ratelimit(middleware.RatelimitConfig{
+			Second: app.GetConfig().Ratelimit.Secend,
+			Number: app.GetConfig().Ratelimit.Number,
+		}))
+	}
+
 	initCtrl(app, r)
 	addr := fmt.Sprintf("%s:%s", app.GetConfig().ShortenerService.Host, app.GetConfig().ShortenerService.Port)
 

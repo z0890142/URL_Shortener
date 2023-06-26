@@ -1,7 +1,10 @@
 package shortener
 
+import "context"
+
 type Shortener interface {
-	GenerateUrlId(url string) (string, error)
+	GetUrlId(ctx context.Context, url string) (string, error)
+
 	Close()
 }
 

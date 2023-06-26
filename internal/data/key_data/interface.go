@@ -6,9 +6,12 @@ import (
 )
 
 type KeyData interface {
-	GetKey(num int, startId int64) ([]models.KeyRow, error)
-	InsertKey([]models.KeyRow) (int, error)
-	UpdateKey([]models.KeyRow) (int, error)
+	InsertAvailableKey(keyRows []models.KeyRow) (int, error)
+	GetAvailableKey(num int) ([]models.KeyRow, error)
+	DeleteAvailableKey(keys []string) error
+	InsertAllocatedKey(keyRows []models.KeyRow) (int, error)
+	GetAvailableKeyCount() (int64, error)
+	CheckKeyExist(key string) int64
 	Close() error
 }
 

@@ -3,12 +3,11 @@ version: "3.9"
 services:
   url_shortener :
     environment:
-      - REDIS.ENABLE=true
-      - REDIS.HOST=redis
-  redis:
+      - RATELIMIT.ENABLE=true
+      - RATELIMIT_REDIS.HOST=redis-ratelimit
+      - RATELIMIT_REDIS.PORT=6379
+  redis-ratelimit:
     image: redis:6-alpine
-    container_name: redis
-    ports:
-      - 6379:6379
+    container_name: redis-ratelimit
     command: redis-server --requirepass "pass"  --maxmemory-policy volatile-lru
     platform: linux/amd64

@@ -1,13 +1,14 @@
 package shortener
 
 import (
+	"URL_Shortener/config"
 	"URL_Shortener/internal/models"
-	"URL_Shortener/pkg/utils/common"
 	"URL_Shortener/pkg/utils/logger"
+	"URL_Shortener/pkg/utils/trace"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -16,16 +17,12 @@ import (
 type KeyServerShortenerConfig struct {
 	KeyServerAddr string
 	KeyPoolSize   int
-	RetryTimes    int
 }
 
 type keyServerShortener struct {
-	wait          bool
-	cond          *sync.Cond
 	keyServerAddr string
 	keyPool       chan string
 	KeyPoolSize   int
-	RetryTimes    int
 }
 
 func newKeyServerShortener(conf KeyServerShortenerConfig) Shortener {
@@ -33,43 +30,47 @@ func newKeyServerShortener(conf KeyServerShortenerConfig) Shortener {
 		keyServerAddr: conf.KeyServerAddr,
 		keyPool:       make(chan string, conf.KeyPoolSize),
 		KeyPoolSize:   conf.KeyPoolSize,
-		RetryTimes:    conf.RetryTimes,
 	}
 	go keyServerShortener.GetNewKey()
 	return &keyServerShortener
 }
 
-func (s *keyServerShortener) GenerateUrlId(url string) (string, error) {
+func (s *keyServerShortener) GetUrlId(ctx context.Context, url string) (string, error) {
+	if config.GetConfig().Trace.Enable {
+		c, span := trace.NewSpan(ctx, "http://jaeger:14268/api/traces")
+		defer span.End()
+		ctx = c
+	}
 
 	for {
 		select {
 		case code, ok := <-s.keyPool:
 			if !ok {
-				s.cond.L.Unlock()
 				return "", fmt.Errorf("GenerateCode: key pool is closed")
 			}
 			return code, nil
-		case <-time.After(10 * time.Second):
+		case <-time.After(10 * time.Millisecond):
 			return "", fmt.Errorf("GenerateCode: timeout")
 		}
 	}
 }
 
+var httpClient = &http.Client{}
+var NewGetKeysResponsePool = sync.Pool{
+	New: func() interface{} {
+		return new(models.GetKeysResponse)
+	},
+}
+
 func (s *keyServerShortener) GetNewKey() {
 
-	fibonacci := common.NewFibonacci(1 * time.Second)
-
-	retryCount := 0
 	for {
-		if retryCount == s.RetryTimes {
-			fibonacci = common.NewFibonacci(1 * time.Second)
-		}
 
 		var response *http.Response
 
 		url := fmt.Sprintf("%s/api/v1/key", s.keyServerAddr)
 		bs, _ := json.Marshal(models.GetKeysRequest{
-			Nums: s.KeyPoolSize,
+			Nums: s.KeyPoolSize * 2,
 		})
 		reader := bytes.NewReader(bs)
 		var err error
@@ -77,37 +78,35 @@ func (s *keyServerShortener) GetNewKey() {
 		req, err := http.NewRequest(http.MethodPost, url, reader)
 		req.Header.Set("Content-Type", "application/json")
 
-		if response, err = http.DefaultClient.Do(req); err != nil {
-			fmt.Println(err)
-			retryWait, _ := fibonacci.Next()
-			t := time.NewTimer(retryWait)
-			<-t.C
-			retryCount++
+		if response, err = httpClient.Do(req); err != nil {
+			logger.LoadExtra(map[string]interface{}{
+				"error": err,
+			}).Error("GetNewKey: http request error")
 			continue
 		}
+		defer response.Body.Close()
 
 		if response.StatusCode != http.StatusOK {
 			response.Body.Close()
 			logger.LoadExtra(map[string]interface{}{
 				"status_code": response.StatusCode,
 			}).Error("GetNewKey: response status code is not 200")
-			retryCount++
 			continue
 		}
-		defer response.Body.Close()
-		bs, err = io.ReadAll(response.Body)
-		result := models.GetKeysResponse{}
-		if err = json.Unmarshal(bs, &result); err != nil {
+
+		decoder := json.NewDecoder(response.Body)
+		result := NewGetKeysResponsePool.Get().(*models.GetKeysResponse)
+		if err = decoder.Decode(&result); err != nil {
 			logger.LoadExtra(map[string]interface{}{
 				"error": err,
-			}).Error("GetNewKey: Unmarshal response error")
-			retryCount++
+			}).Error("GetNewKey: Decode response error")
 			continue
 		}
+
 		for _, key := range result.Keys {
 			s.keyPool <- key
 		}
-
+		NewGetKeysResponsePool.Put(result)
 	}
 }
 
