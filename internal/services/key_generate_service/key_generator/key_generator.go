@@ -42,10 +42,6 @@ func (k *KeyGenerator) Start() {
 	go k.startRecycler(time.Second * 1)
 	go k.storeKey()
 	go k.generateKey()
-	go k.generateKey()
-	go k.generateKey()
-	go k.generateKey()
-	go k.generateKey()
 }
 
 func (k *KeyGenerator) startRecycler(period time.Duration) {
