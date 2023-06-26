@@ -1,8 +1,12 @@
 ENV: local
-SERVICE:
+SHORTENER_SERVICE:
   NAME: url_shortener
   HOST: "0.0.0.0"
   PORT: "80"
+KEY_SERVICE:
+  NAME: key
+  HOST: "0.0.0.0"
+  PORT: "8080"
 LOG_LEVEL : DEBUG
 LOG_FILE: stdout
 
@@ -12,7 +16,7 @@ ENDPOINTS:
     HTTP:
       ENABLE_TLS: false
       HOST: 127.0.0.1
-      PORT: 8081
+      PORT: 8080
 
 DATABASES:
   DRIVER: mysql
@@ -27,11 +31,25 @@ DATABASES:
   READ_TIMEOUT: 1s
   WRITE_TIMEOUT: 1s
 
-MAX_RETRY: 5
 REDIS:
+  ENABLE: false
   HOST: 127.0.0.1
   PORT: 6379
   PASSWORD: pass
-HASH_POOL_SIZE: 100
-ENABLE_KEY_SERVICE: false
 
+RATELIMIT_REDIS:
+  HOST: 127.0.0.1
+  PORT: 6379
+  PASSWORD: pass
+
+HASH_POOL_SIZE: 10000
+ENABLE_KEY_SERVICE: false
+STORE_BATCH_SIZE: 1000
+MIGRATION_FILE_PATH: ../../pkg/database/migrations
+RATELIMIT:
+  ENABLE: false
+  NUMBER: 100
+  SECEND: 5
+TRACE:
+  ENABLE: false
+  ENDPOINT: http://jaeger:14268/api/traces

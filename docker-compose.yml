@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      MYSQL_DATABASE: url_shortener
+      MYSQL_ROOT_PASSWORD: pass
+    command: --lower_case_table_names=0
+
+  service-build:
+    build:
+      context: .
+      args:
+        MAIN_PATH: url_shortener
+      dockerfile: build/dockerfile
+    image: url_shortener:latest
+
+  url_shortener :
+    image: url_shortener:latest
+    ports:  
+      - 80:80
+    environment:
+      - DATABASES.HOST=mysql
+      - MIGRATION_FILE_PATH=./pkg/database/migrations
+    depends_on:
+      - mysql
+    restart: always
+
+
+

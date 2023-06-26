@@ -1,4 +1,3 @@
-DROP TABLE IF EXISTS `url_mapping`;
 CREATE TABLE IF NOT EXISTS `url_mapping`
 (
     `url_id` char(6) NOT NULL primary key,
@@ -7,4 +6,15 @@ CREATE TABLE IF NOT EXISTS `url_mapping`
     `expired` tinyint(1) NOT NULL DEFAULT 0,
     `created_at`              timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`              timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS `available_key`
+(
+    `key` char(6) NOT NULL primary key,
+    `created_at`              timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE IF NOT EXISTS `allocated_key` (
+    `key` char(6)  NOT NULL primary key,
+    `created_at`              timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

@@ -3,72 +3,74 @@ package handler
 import (
 	"URL_Shortener/internal/data/key_data"
 	"URL_Shortener/internal/models"
+	"URL_Shortener/internal/services/key_generate_service/key_generator"
+	"URL_Shortener/pkg/app"
+	"URL_Shortener/pkg/utils/shortener"
 	"fmt"
-	"sync"
 )
 
 type defaultKeyHandler struct {
-	mu          sync.Mutex
-	keyBuffer   chan string
-	latestKeyId int64
-	keyData     key_data.KeyData
+	keyData      key_data.KeyData
+	keyGenerator *key_generator.KeyGenerator
 }
 
-func NewDefaultKeyHandler() (KeyHandler, error) {
-	return &defaultKeyHandler{}, nil
+type DefaultKeyHandlerConf struct {
+	HashPoolSize   int
+	StoreBatchSize int
+}
+
+func newDefaultKeyHandler(conf DefaultKeyHandlerConf) (KeyHandler, error) {
+
+	defaultKeyHandler := defaultKeyHandler{}
+
+	murmurShortener := shortener.NewShortener(shortener.MurMurShortenerConfig{
+		HashPoolSize: conf.HashPoolSize,
+	})
+
+	keyData, err := key_data.NewKeyData(app.Default().GetConfig().Databases)
+	if err != nil {
+		return nil, fmt.Errorf("NewDefaultKeyHandler: %w", err)
+	}
+	defaultKeyHandler.keyData = keyData
+
+	keyGenerator := key_generator.NewKeyGenerator(conf.StoreBatchSize, keyData, murmurShortener)
+	defaultKeyHandler.keyGenerator = keyGenerator
+
+	defaultKeyHandler.keyGenerator.Start()
+	return &defaultKeyHandler, nil
 }
 
 func (d *defaultKeyHandler) GetKeys(num int) (result []string, err error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
 
-	var count int
 	var keys []models.KeyRow
 
-Loop:
-	for count = 0; count < num; count++ {
-		select {
-		case key := <-d.keyBuffer:
-			result = append(result, key)
-		default:
-			keys, err = d.keyData.GetKey(num*2-count, d.latestKeyId)
-			if err != nil {
-				d.insertKeyToBuf(result)
-				return []string{}, fmt.Errorf("GetKeys: %w", err)
-			}
-			break Loop
-		}
-	}
-
-	if len(keys) == 0 {
-		return result, nil
-	}
-
-	for index, key := range keys {
-		keys[index].Used = 1
-		if len(result) < num {
-			result = append(result, key.Key)
-			continue
-		}
-		d.keyBuffer <- key.Key
-	}
-
-	//update keys to used
-	if _, err = d.keyData.UpdateKey(keys); err != nil {
+	keys, err = d.keyData.GetAvailableKey(num)
+	if err != nil {
 		return []string{}, fmt.Errorf("GetKeys: %w", err)
 	}
 
-	d.latestKeyId = keys[len(keys)-1].Id
+	keyIds := make([]string, len(keys))
+	for i, key := range keys {
+		keyIds[i] = key.Key
+	}
+	err = d.keyData.DeleteAvailableKey(keyIds)
+	if err != nil {
+		return []string{}, fmt.Errorf("GetKeys: %w", err)
+	}
+
+	_, err = d.keyData.InsertAllocatedKey(keys)
+	if err != nil {
+		return []string{}, fmt.Errorf("GetKeys: %w", err)
+	}
+
+	result = make([]string, len(keys))
+	for i, key := range keys {
+		result[i] = key.Key
+	}
 
 	return result, nil
 }
 
-func (d *defaultKeyHandler) GenerateKey() {
-
-}
-
-func (d *defaultKeyHandler) insertKeyToBuf(keys []string) {
-	for _, key := range keys {
-		d.keyBuffer <- key
-	}
+func (d *defaultKeyHandler) Shutdown() {
+	d.keyData.Close()
 }

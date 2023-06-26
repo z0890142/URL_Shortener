@@ -4,7 +4,9 @@ import (
 	"URL_Shortener/c"
 	"URL_Shortener/config"
 	"URL_Shortener/internal/models"
-	"URL_Shortener/internal/utils/common"
+	"URL_Shortener/pkg/utils/common"
+	"URL_Shortener/pkg/utils/trace"
+	"context"
 	"fmt"
 	"time"
 
@@ -33,7 +35,13 @@ func newUrlMappingMysql(conf config.DatabaseOption) (UrlMappingData, error) {
 	return &urlMappingMysql{gormClient: gormClient}, nil
 }
 
-func (u *urlMappingMysql) SetUrlId(urlId, url, expireAt string) error {
+func (u *urlMappingMysql) SetUrlId(ctx context.Context, urlId, url, expireAt string) error {
+	if config.GetConfig().Trace.Enable {
+		c, span := trace.NewSpan(ctx, "http://jaeger:14268/api/traces")
+		defer span.End()
+		ctx = c
+	}
+
 	expire, err := time.Parse(c.TimeFormat, expireAt)
 	if err != nil {
 		return fmt.Errorf("SetUrlId: %w", err)
@@ -44,12 +52,18 @@ func (u *urlMappingMysql) SetUrlId(urlId, url, expireAt string) error {
 		ExpiredAt:   expire,
 	}
 
-	if err := u.gormClient.Table(c.UrlMapping).Create(&urlMappingRow).Error; err != nil {
+	if err := u.gormClient.WithContext(ctx).Table(c.UrlMapping).Create(&urlMappingRow).Error; err != nil {
 		return err
 	}
 	return nil
 }
-func (u *urlMappingMysql) GetUrl(urlId string) (string, error) {
+func (u *urlMappingMysql) GetUrl(ctx context.Context, urlId string) (string, error) {
+	if config.GetConfig().Trace.Enable {
+		c, span := trace.NewSpan(ctx, "http://jaeger:14268/api/traces")
+		defer span.End()
+		ctx = c
+	}
+
 	urlMappingRow := models.UrlMappingRow{
 		UrlId:   urlId,
 		Expired: 0,
@@ -65,4 +79,12 @@ func (u *urlMappingMysql) GetUrl(urlId string) (string, error) {
 	}
 
 	return urlMappingRow.OriginalUrl, nil
+}
+
+func (u *urlMappingMysql) Close() error {
+	db, err := u.gormClient.DB()
+	if err != nil {
+		return fmt.Errorf("Close: %w", err)
+	}
+	return db.Close()
 }
