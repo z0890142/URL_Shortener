@@ -1,11 +1,13 @@
 package controller
 
 import (
+	constants "URL_Shortener/c"
 	"URL_Shortener/config"
 	"URL_Shortener/internal/models"
 	"URL_Shortener/internal/services/url_shortener_service/handler"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -74,13 +76,15 @@ func (s *ShortenerController) RedirectUrl(c *gin.Context) {
 
 	id := c.Param("urlId")
 	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "urlId is empty"})
+		statusCode, err := errParse(fmt.Errorf(constants.UrlEmptyErrMsg))
+		c.JSON(statusCode, gin.H{"error": err.Error()})
 		return
 	}
 
 	url, err := s.shortHandler.GetUrl(c, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		statusCode, err := errParse(err)
+		c.JSON(statusCode, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -91,4 +95,15 @@ func (s *ShortenerController) Shutdown() {
 	s.shuntDownOnce.Do(func() {
 		s.shortHandler.Shutdown()
 	})
+}
+
+func errParse(err error) (int, error) {
+	if strings.Contains(err.Error(), constants.ExpireErrMsg) && strings.Contains(err.Error(), constants.NotFoundErrMsg) {
+		return http.StatusNotFound, err
+	}
+
+	if strings.Contains(err.Error(), constants.UrlEmptyErrMsg) {
+		return http.StatusInternalServerError, err
+	}
+	return http.StatusInternalServerError, err
 }

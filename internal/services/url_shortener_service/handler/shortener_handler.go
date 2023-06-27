@@ -10,6 +10,7 @@ import (
 	"URL_Shortener/pkg/utils/trace"
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -126,6 +127,13 @@ func (h *defaultShortenerHandler) GetUrl(ctx context.Context, urlId string) (url
 	url, err = h.urlMappingDataRedis.GetUrl(ctx, urlId)
 	if err == nil {
 		return url, nil
+	}
+	if err != nil && strings.Contains(err.Error(), c.ExpireErrMsg) {
+		logger.LoadExtra(map[string]interface{}{
+			"urlId": urlId,
+			"error": err,
+		}).Error("GetUrl: GetUrl from redis failed")
+		return "", err
 	}
 
 	logger.Info("GetUrl: GetUrl from DB")
