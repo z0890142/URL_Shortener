@@ -5,7 +5,6 @@ import (
 	"URL_Shortener/internal/data/ratelimit_data"
 	"URL_Shortener/pkg/utils/algorithm"
 	"URL_Shortener/pkg/utils/hotp"
-	"fmt"
 	"math"
 	"time"
 
@@ -18,12 +17,11 @@ type RatelimitConfig struct {
 }
 
 func Ratelimit(conf RatelimitConfig) gin.HandlerFunc {
-	ratelimitData, err := ratelimit_data.NewRateLimitData(&ratelimit_data.RatelimitDataConfig{
+	ratelimitData, _ := ratelimit_data.NewRateLimitData(&ratelimit_data.RatelimitDataConfig{
 		Host:     config.GetConfig().RatelimitRedis.Host,
 		Port:     config.GetConfig().RatelimitRedis.Port,
 		Password: config.GetConfig().RatelimitRedis.Password,
 	})
-	fmt.Println(err)
 
 	return func(ctx *gin.Context) {
 
@@ -34,7 +32,6 @@ func Ratelimit(conf RatelimitConfig) gin.HandlerFunc {
 		}
 		addr := ctx.Request.RemoteAddr
 		generateCode, err := hotp.HotpGenerateCode(addr, uint64(counter), generateOpts)
-		fmt.Println(generateCode)
 		if err != nil {
 			ctx.AbortWithStatusJSON(500, gin.H{"error": err.Error()})
 			return

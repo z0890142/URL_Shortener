@@ -19,6 +19,11 @@ subgraph Redis
   Redis2[Ratelimit]
 end
 
+subgraph Trace
+  Trace1[Jaeger]
+end
+
+service1 --> Trace1
 service1 --> service2
 service1 --> Redis1
 service1 --> Redis2
@@ -56,6 +61,9 @@ URL_Shortener 主要使用mysql當作資料庫並使用 Redis 當作暫存的 ca
          make url_shortener_redis_kgs
       ```
 * 啟動 Ratelimit、url_shortener_service 、 key_generate_service 透過 key_generate_service 獲取 UrlId，並同時啟動 Redis 當暫存。
+
+Ratelimit 目前設定是 100 request per 5 secend，欲修改可透過 config.yaml 或 docker-compose 環境變量。
+
    * 啟動方式：於根目錄下執行
       ```
          make url_shortener_redis_kgs_ratelimit

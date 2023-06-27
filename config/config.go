@@ -41,6 +41,7 @@ type Config struct {
 	StoreBatchSize    int    `mapstructure:"STORE_BATCH_SIZE"`
 	MigrationFilePath string `mapstructure:"MIGRATION_FILE_PATH"`
 	Trace             Trace  `mapstructure:"TRACE"`
+	MaxRetryTime      int    `mapstructure:"MAX_RETRY_TIME"`
 }
 
 // Service defines service configuration struct.

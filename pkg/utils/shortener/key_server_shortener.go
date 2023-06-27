@@ -3,6 +3,7 @@ package shortener
 import (
 	"URL_Shortener/config"
 	"URL_Shortener/internal/models"
+	"URL_Shortener/pkg/utils/common"
 	"URL_Shortener/pkg/utils/logger"
 	"URL_Shortener/pkg/utils/trace"
 	"bytes"
@@ -17,25 +18,28 @@ import (
 type KeyServerShortenerConfig struct {
 	KeyServerAddr string
 	KeyPoolSize   int
+	MaxRetryTimes int
 }
 
 type keyServerShortener struct {
 	keyServerAddr string
 	keyPool       chan string
 	KeyPoolSize   int
+	MaxRetryTimes int
 }
 
-func newKeyServerShortener(conf KeyServerShortenerConfig) Shortener {
+func newKeyServerShortener(conf *KeyServerShortenerConfig) Shortener {
 	keyServerShortener := keyServerShortener{
 		keyServerAddr: conf.KeyServerAddr,
 		keyPool:       make(chan string, conf.KeyPoolSize),
 		KeyPoolSize:   conf.KeyPoolSize,
+		MaxRetryTimes: conf.MaxRetryTimes,
 	}
 	go keyServerShortener.GetNewKey()
 	return &keyServerShortener
 }
 
-func (s *keyServerShortener) GetUrlId(ctx context.Context, url string) (string, error) {
+func (s *keyServerShortener) GetUrlId(ctx context.Context) (string, error) {
 	if config.GetConfig().Trace.Enable {
 		c, span := trace.NewSpan(ctx, "http://jaeger:14268/api/traces")
 		defer span.End()
@@ -63,8 +67,10 @@ var NewGetKeysResponsePool = sync.Pool{
 }
 
 func (s *keyServerShortener) GetNewKey() {
+	var retryTimes int
+	fibonacci := common.NewFibonacci(5 * time.Millisecond)
 
-	for {
+	for retryTimes < s.MaxRetryTimes {
 
 		var response *http.Response
 
@@ -82,6 +88,8 @@ func (s *keyServerShortener) GetNewKey() {
 			logger.LoadExtra(map[string]interface{}{
 				"error": err,
 			}).Error("GetNewKey: http request error")
+			retryTimes++
+			<-time.After(fibonacci.Next())
 			continue
 		}
 		defer response.Body.Close()
@@ -91,6 +99,8 @@ func (s *keyServerShortener) GetNewKey() {
 			logger.LoadExtra(map[string]interface{}{
 				"status_code": response.StatusCode,
 			}).Error("GetNewKey: response status code is not 200")
+			retryTimes++
+			<-time.After(fibonacci.Next())
 			continue
 		}
 
@@ -100,6 +110,8 @@ func (s *keyServerShortener) GetNewKey() {
 			logger.LoadExtra(map[string]interface{}{
 				"error": err,
 			}).Error("GetNewKey: Decode response error")
+			retryTimes++
+			<-time.After(fibonacci.Next())
 			continue
 		}
 
@@ -107,6 +119,7 @@ func (s *keyServerShortener) GetNewKey() {
 			s.keyPool <- key
 		}
 		NewGetKeysResponsePool.Put(result)
+		fibonacci.Reset()
 	}
 }
 
