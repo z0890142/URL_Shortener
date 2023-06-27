@@ -52,6 +52,17 @@ func (r *urlMappingRedis) GetUrl(ctx context.Context, urlId string) (string, err
 		ctx = c
 	}
 
+	duration, err := r.redisClient.WithContext(ctx).TTL(urlId).Result()
+	if err != nil {
+		return "", fmt.Errorf("GetUrl: %s", err)
+	}
+	switch duration.Seconds() {
+	case -2:
+		return "", fmt.Errorf("GetUrl: record not found")
+	case -1:
+		return "", fmt.Errorf("GetUrl: url expired")
+	}
+
 	return r.redisClient.WithContext(ctx).Get(urlId).Result()
 }
 
