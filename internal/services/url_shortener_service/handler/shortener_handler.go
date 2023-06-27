@@ -29,8 +29,8 @@ type DefaultHandlerConf struct {
 	DatabaseOpts     config.DatabaseOption
 }
 
-func NewDefaultShortenerHandler(conf DefaultHandlerConf) (ShortenerHandler, error) {
-	murmurShortener := shortener.NewShortener(shortener.MurMurShortenerConfig{
+func NewDefaultShortenerHandler(conf *DefaultHandlerConf) (ShortenerHandler, error) {
+	murmurShortener := shortener.NewShortener(&shortener.MurMurShortenerConfig{
 		HashPoolSize: conf.HashPoolSize,
 	})
 
@@ -62,7 +62,7 @@ func NewDefaultShortenerHandler(conf DefaultHandlerConf) (ShortenerHandler, erro
 	}
 
 	if conf.EnableKeyService {
-		keyShortener := shortener.NewShortener(shortener.KeyServerShortenerConfig{
+		keyShortener := shortener.NewShortener(&shortener.KeyServerShortenerConfig{
 			KeyServerAddr: conf.KeyServiceAddr,
 			KeyPoolSize:   conf.HashPoolSize,
 		})
@@ -79,7 +79,7 @@ func (h *defaultShortenerHandler) GenerateShortUrl(ctx context.Context, url, exp
 	}
 
 	for {
-		urlId, err = h.GetUrlId(ctx, url)
+		urlId, err = h.GetUrlId(ctx)
 		if err != nil {
 			return "", fmt.Errorf("GenerateShortUrl: %w", err)
 		}
@@ -138,7 +138,7 @@ func (h *defaultShortenerHandler) GetUrl(ctx context.Context, urlId string) (url
 
 }
 
-func (h *defaultShortenerHandler) GetUrlId(ctx context.Context, url string) (string, error) {
+func (h *defaultShortenerHandler) GetUrlId(ctx context.Context) (string, error) {
 	if config.GetConfig().Trace.Enable {
 		c, span := trace.NewSpan(ctx, "http://jaeger:14268/api/traces")
 		defer span.End()
@@ -148,15 +148,15 @@ func (h *defaultShortenerHandler) GetUrlId(ctx context.Context, url string) (str
 	var urlId string
 	var err error
 	if h.keyShortener == nil {
-		urlId, err = h.murmurShortener.GetUrlId(ctx, url)
+		urlId, err = h.murmurShortener.GetUrlId(ctx)
 		if err != nil {
 			return "", fmt.Errorf("GenerateShortUrl: %w", err)
 		}
 		return urlId, nil
 	}
 
-	if urlId, err = h.keyShortener.GetUrlId(ctx, url); err != nil {
-		urlId, err = h.murmurShortener.GetUrlId(ctx, url)
+	if urlId, err = h.keyShortener.GetUrlId(ctx); err != nil {
+		urlId, err = h.murmurShortener.GetUrlId(ctx)
 		logger.Info("GetUrlId: GenerateUrlId from murmur")
 		if err != nil {
 			return "", fmt.Errorf("GenerateShortUrl: %w", err)

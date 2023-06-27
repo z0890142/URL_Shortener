@@ -13,7 +13,7 @@ var defaultController *controller.KeyController
 
 func initCtrl(app *app.Application, r *gin.Engine) (*controller.KeyController, error) {
 
-	handler, err := handler.NewKeyHandler(handler.DefaultKeyHandlerConf{
+	handler, err := handler.NewKeyHandler(&handler.DefaultKeyHandlerConf{
 		HashPoolSize:   app.GetConfig().HashPoolSize,
 		StoreBatchSize: app.GetConfig().StoreBatchSize,
 	})

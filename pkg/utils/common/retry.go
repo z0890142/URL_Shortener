@@ -11,9 +11,11 @@ type state [2]time.Duration
 
 type fibonacciBackoff struct {
 	state unsafe.Pointer
+	base  time.Duration
 }
 type Backoff interface {
-	Next() (next time.Duration, stop bool)
+	Next() (next time.Duration)
+	Reset()
 }
 
 func NewFibonacci(base time.Duration) Backoff {
@@ -22,22 +24,27 @@ func NewFibonacci(base time.Duration) Backoff {
 	}
 
 	return &fibonacciBackoff{
+		base:  base,
 		state: unsafe.Pointer(&state{0, base}),
 	}
 }
 
-func (b *fibonacciBackoff) Next() (time.Duration, bool) {
+func (b *fibonacciBackoff) Next() time.Duration {
 	for {
 		curr := atomic.LoadPointer(&b.state)
 		currState := (*state)(curr)
 		next := currState[0] + currState[1]
 
 		if next <= 0 {
-			return math.MaxInt64, false
+			return math.MaxInt64
 		}
 
 		if atomic.CompareAndSwapPointer(&b.state, curr, unsafe.Pointer(&state{currState[1], next})) {
-			return next, false
+			return next
 		}
 	}
+}
+
+func (b *fibonacciBackoff) Reset() {
+	atomic.StorePointer(&b.state, unsafe.Pointer(&state{0, b.base}))
 }

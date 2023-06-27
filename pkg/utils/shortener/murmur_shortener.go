@@ -18,7 +18,11 @@ type MurMurShortenerConfig struct {
 	HashPoolSize int
 }
 
-func newMurmurShortener(conf MurMurShortenerConfig) Shortener {
+func newMurmurShortener(conf *MurMurShortenerConfig) Shortener {
+	if conf.HashPoolSize <= 0 {
+		return nil
+	}
+
 	murmurShortener := &murmurShortener{
 		hashPool: common.NewHashPool(conf.HashPoolSize),
 		keyPool:  make(chan string, conf.HashPoolSize),
@@ -41,7 +45,7 @@ func (s *murmurShortener) GenerateUrlId() (string, error) {
 		s.hashPool.ReleaseHash(hash)
 	}
 }
-func (s *murmurShortener) GetUrlId(ctx context.Context, url string) (string, error) {
+func (s *murmurShortener) GetUrlId(ctx context.Context) (string, error) {
 	if config.GetConfig().Trace.Enable {
 		c, span := trace.NewSpan(ctx, "http://jaeger:14268/api/traces")
 		defer span.End()

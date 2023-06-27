@@ -19,11 +19,11 @@ type DefaultKeyHandlerConf struct {
 	StoreBatchSize int
 }
 
-func newDefaultKeyHandler(conf DefaultKeyHandlerConf) (KeyHandler, error) {
+func newDefaultKeyHandler(conf *DefaultKeyHandlerConf) (KeyHandler, error) {
 
 	defaultKeyHandler := defaultKeyHandler{}
 
-	murmurShortener := shortener.NewShortener(shortener.MurMurShortenerConfig{
+	murmurShortener := shortener.NewShortener(&shortener.MurMurShortenerConfig{
 		HashPoolSize: conf.HashPoolSize,
 	})
 

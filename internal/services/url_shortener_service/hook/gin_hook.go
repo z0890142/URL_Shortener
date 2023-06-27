@@ -37,7 +37,7 @@ func initCtrl(app *app.Application, r *gin.Engine) (*controller.ShortenerControl
 		handlerConf.EnableKeyService = true
 	}
 
-	handler, err := handler.NewDefaultShortenerHandler(handlerConf)
+	handler, err := handler.NewDefaultShortenerHandler(&handlerConf)
 
 	if err != nil {
 		panic(err)

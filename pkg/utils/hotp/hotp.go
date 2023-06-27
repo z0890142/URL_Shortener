@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
-	"strings"
 )
 
 type GenerateOptions struct {
@@ -15,13 +14,9 @@ type GenerateOptions struct {
 }
 
 func HotpGenerateCode(secret string, counter uint64, opts GenerateOptions) (string, error) {
-	secret = strings.ToUpper(secret)
-
-	// secretBytes, err := base32.StdEncoding.DecodeString(secret)
-	// if err != nil {
-	// 	return "", fmt.Errorf("HotpGenerateCode: %s", err.Error())
-	// }
-
+	if secret == "" {
+		return "", fmt.Errorf("secret is empty")
+	}
 	buf := make([]byte, 8)
 	mac := hmac.New(opts.Algorithm.Hash, []byte(secret))
 	binary.BigEndian.PutUint64(buf, counter)

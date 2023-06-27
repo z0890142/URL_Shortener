@@ -6,9 +6,6 @@ import (
 	"URL_Shortener/pkg/utils/logger"
 	"URL_Shortener/pkg/utils/shortener"
 	"context"
-	"sync"
-
-	"github.com/google/uuid"
 
 	"time"
 )
@@ -96,23 +93,17 @@ func (k *KeyGenerator) adjustKeyGenerationInterval(size int) {
 }
 
 func (k *KeyGenerator) generateKey() {
-	var uuidPool = sync.Pool{
-		New: func() interface{} {
-			return uuid.New()
-		},
-	}
 	for {
 
 		time.Sleep(k.keyGenerationInterval)
 		var key string
 		var err error
-		uuidObj := uuidPool.Get().(uuid.UUID)
-		if key, err = k.murmurShortener.GetUrlId(context.Background(), uuidObj.String()); err != nil {
+		if key, err = k.murmurShortener.GetUrlId(context.Background()); err != nil {
 			logger.LoadExtra(map[string]interface{}{
 				"error": err,
 			}).Error("GenerateKey: error")
 		}
-		uuidPool.Put(uuidObj)
+
 		isExist := k.keyData.CheckKeyExist(key)
 		if isExist == 1 {
 			continue
