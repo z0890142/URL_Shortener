@@ -72,7 +72,7 @@ Ratelimit 目前設定是 100 request per 5 secend，欲修改可透過 config.y
 **除上述方式外可參考 makefile 內的格式自行調整欲啟用的功能。**
 
 ---
-##壓力測試
+## 壓力測試
 
 * 需安裝 K6 (https://k6.io/docs/get-started/installation/)
 
