@@ -5,6 +5,7 @@ import (
 	"URL_Shortener/config"
 	"URL_Shortener/internal/models"
 	"URL_Shortener/pkg/utils/common"
+	"URL_Shortener/pkg/utils/logger"
 	"URL_Shortener/pkg/utils/trace"
 	"context"
 	"fmt"
@@ -75,6 +76,14 @@ func (u *urlMappingMysql) GetUrl(ctx context.Context, urlId string) (string, err
 	}
 
 	if urlMappingRow.ExpiredAt.Before(time.Now()) {
+		urlMappingRow.Expired = 1
+		err := u.gormClient.Table(c.UrlMapping).Where(&urlMappingRow).Save(&urlMappingRow).Error
+		if err != nil {
+			logger.LoadExtra(map[string]interface{}{
+				"error": err,
+				"urlId": urlId,
+			}).Error("GetUrl: update expired failed")
+		}
 		return "", fmt.Errorf("GetUrl: url expired")
 	}
 
