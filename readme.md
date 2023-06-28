@@ -32,14 +32,15 @@ service2 --> database2
 ```
 ### 說明
 URL_Shortener 主要使用 mysql 當作資料庫並使用 Redis 當作暫存的 cache ，在 Service 的部分可以拆成兩個部分，一個是專門負責產生 UrlId 的 key_generate_service 與負責進行縮短網址和 redirect的 url_shortener_service。
+
 這兩個 service 皆有相對應的 database 由於 key_generate_service 會不停地將新的 key 塞入 database ，經過觀察有發現隨著時間的推移 database 的效能會開始下降，所以主要是希望可以透過區分 database 的方式降低 database 的影響。
-而 Redis 的部分，第一個 Redis 會當作 url_shortener_service 的 cache 來降低 Datbase 的負擔，第二個 Redis 主要是用來實現簡易的 Ratelimit。
+
+第一個 Redis 會當作 url_shortener_service 的 cache 來降低 Datbase 的負擔，第二個 Redis 主要是用來實現簡易的 Ratelimit。
 
 
 hash採用 murmurhash 主要是考量到在 url_shortener 的部分並不會有加密上的考量，所以主要以效能優先在考量效能的情況下 survey 的結果 murmurhash 會是比較好的選擇。
 
-在壓測的時候有透過trace觀察到整個api再的時間主要會有一半以上會消耗在存入的時候，如果使用情境可以接受先將結果存入 redis 再利用非同步的方式將資料存入 mysql 應該會提升不少 api 反應時間
-但這樣做會有掉資料的風險存在，認為這部分還是要看使用情境來決定所以並沒有實作。
+在壓測的時候有透過 trace 觀察到整個 api 時間主要會有一半以上會消耗在存入的時候，如果使用情境可以接受先將結果存入 redis 再利用非同步的方式將資料存入 mysql 應該會提升不少 api 反應時間但這樣做會有掉資料的風險存在，認為這部分還是要看使用情境來決定所以並沒有實作。
 
 ---
 
@@ -98,7 +99,7 @@ sequenceDiagram;
    User->>url_shortener_service: 發起 Redirect Request;
    url_shortener_service ->> redis2(ratelimit): 透過 IP 確認是否到達限制上限;
    url_shortener_service ->> redis1(cache):確認該 UrlId 是否存在於 Cache，並透過 Redis TTL 檢查是否過期;
-   url_shortener_service -->> User: 如 Redis 有存在該 UrlId 並且為過期則 Redirect ;
+   url_shortener_service -->> User: 如 Redis 有存在該 UrlId 並且未過期則 Redirect ;
 
    url_shortener_service ->> mysql1:Redis 如果找不到資料則向 Database 收尋 ;
    url_shortener_service ->> url_shortener_service: 確認是否過期，如過期則 update 該資料;
